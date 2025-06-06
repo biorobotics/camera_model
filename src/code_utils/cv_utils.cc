@@ -33,6 +33,12 @@ cv_utils::fisheye::PreProcess::PreProcess( const cv::Size _raw_image_size,
         std::cout << "[#ERROR] Parameters error." << std::endl;
 }
 
+/**
+ * @brief Reset the pre-process parameters such that the region of interest (ROI) can be adjusted.
+ * @param _roi_size Size of the region of interest.
+ * @param _center Center point of the region of interest.
+ * @param _resize_scale Scale factor for resizing the image.
+ */
 void
 cv_utils::fisheye::PreProcess::resetPreProcess( cv::Size _roi_size, cv::Point _center, float _resize_scale )
 {
