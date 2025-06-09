@@ -1,3 +1,8 @@
+/**
+ * @file april_calib.cc
+ * @brief Main file for camera calibration using april grid patterns.
+ */
+
 #define BACKWARD_HAS_DW 1
 #include "backward.hpp"
 namespace backward
@@ -257,7 +262,7 @@ main( int argc, char** argv )
         points3ds = aprilgrid.points3d( );
         if ( succ )
         {
-            std::cerr << "# INFO: Detected chessboard in image " << image_index + 1 << ", "
+            std::cerr << "# INFO: Detected april grid in image " << image_index + 1 << ", "
                       << imageFilenames.at( image_index ) << std::endl;
 
             std::vector< cv::Point2f > points2_fin;

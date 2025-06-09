@@ -174,7 +174,10 @@ class ReprojectionError1
     Eigen::Matrix2d m_sqrtPrecisionMat;
 };
 
-// variables: camera extrinsics, 3D point
+/**
+ * @note From camodocal. This is not in use in the current codebase.
+ * variables: camera extrinsics, 3D point
+ */
 template< class CameraT >
 class ReprojectionError2
 {
@@ -215,6 +218,9 @@ class ReprojectionError2
     Eigen::Vector2d m_observed_p;
 };
 
+/**
+ * @note From camodocal. This is not in use in the current codebase.
+ */
 template< class CameraT >
 class ReprojectionError3
 {

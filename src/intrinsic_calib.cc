@@ -1,3 +1,8 @@
+/**
+ * @file intrinsic_calib.cc
+ * @brief Main file for intrinsic camera calibration using chessboard images.
+ */
+
 #define BACKWARD_HAS_DW 1
 #include "backward.hpp"
 namespace backward
@@ -238,6 +243,7 @@ main( int argc, char** argv )
     std::vector< bool > chessboardFound( imageFilenames.size( ), false );
 
     size_t image_index;
+    // Use OpenMP to parallelize the chessboard detection
 #pragma omp parallel for private( image_index )
     for ( image_index = 0; image_index < imageFilenames.size( ); ++image_index )
     {
@@ -253,8 +259,10 @@ main( int argc, char** argv )
             std::cerr << "# INFO: Detected chessboard in image " << image_index + 1 << ", "
                       << imageFilenames.at( image_index ) << std::endl;
 
+#pragma omp critical {
             calibration.addChessboardData( chessboard.getCorners( ) );
             calibration.addImage( image, image_name );
+}
 
             cv::Mat sketch;
             chessboard.getSketch( ).copyTo( sketch );

@@ -145,6 +145,15 @@ Camera::mask( void ) const
     return m_mask;
 }
 
+/**
+ * @brief Estimate the object pose with respect to the camera frame.
+ * @param objectPoints 3D points in the object (world) coordinate space.
+ * @param imagePoints 2D points in the image coordinate space.
+ * @param rvec Output rotation vector.
+ * @param tvec Output translation vector.
+ * Assume a unit focal length, zero principal point, and zero distortion.
+ * Need at least 4 points to estimate the pose.
+ */
 void
 Camera::estimateExtrinsics( const std::vector< cv::Point3f >& objectPoints,
                             const std::vector< cv::Point2f >& imagePoints,
