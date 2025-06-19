@@ -16,7 +16,7 @@ namespace cameras
 ///        tagRows:    number of tags in y-dir (gridRows = 2*tagRows)
 ///        tagCols:    number of tags in x-dir (gridCols = 2*tagCols)
 ///        tagSize:    size of a tag [m]
-///        tagSpacing: space between tags (in tagSpacing [m] = tagSpacing*tagSize)
+///        tagSpacing: space between tags (tagSpacing = spacing[m] / tagSize)
 ///
 ///        corner ordering in _points :
 ///          12-----13  14-----15

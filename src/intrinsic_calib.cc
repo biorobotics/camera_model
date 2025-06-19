@@ -250,7 +250,7 @@ main( int argc, char** argv )
         std::string image_name = imageFilenames.at( image_index );
 
         cv::Mat image = preprocess->do_preprocess( cv::imread( image_name, -1 ) );
-
+        // Create a chessboard calibration target
         camera_model::Chessboard chessboard( boardSize, image );
 
         chessboard.findCorners( useOpenCV );
@@ -259,10 +259,8 @@ main( int argc, char** argv )
             std::cerr << "# INFO: Detected chessboard in image " << image_index + 1 << ", "
                       << imageFilenames.at( image_index ) << std::endl;
 
-#pragma omp critical {
             calibration.addChessboardData( chessboard.getCorners( ) );
             calibration.addImage( image, image_name );
-}
 
             cv::Mat sketch;
             chessboard.getSketch( ).copyTo( sketch );

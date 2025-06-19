@@ -70,7 +70,7 @@ main( int argc, char** argv )
         ( "opencv", value< bool >( &useOpenCV )->default_value( true ), "Use OpenCV to detect corners" )
         ( "view-results", value< bool >( &viewResults )->default_value( true ), "View results" )
         ( "verbose,v", value< bool >( &verbose )->default_value( true ), "Verbose output" )
-        ( "save_result", value< bool >( &is_save_images )->default_value( true ), "save calibration result chessboard point." )
+        ( "save_result", value< bool >( &is_save_images )->default_value( true ), "save calibration result april grid point." )
         ( "result_images_save_folder", value< std::string  >( &result_images_save_folder )->default_value( "calib_images" ), " calibration result images save folder." )
         ( "point_file", value< std::string  >( &point_file )->default_value( "calib_images" ), " calibration result images save folder." )
         ( "resize-scale", value< float >( &resize_scale )->default_value( 1.0f ), "resize scale" )
@@ -243,13 +243,14 @@ main( int argc, char** argv )
     std::vector< bool > chessboardFound( imageFilenames.size( ), false );
 
     size_t image_index;
+    // Use OpenMP to parallelize the chessboard detection
 #pragma omp parallel for private( image_index )
     for ( image_index = 0; image_index < imageFilenames.size( ); ++image_index )
     {
         std::string image_name = imageFilenames.at( image_index );
 
         cv::Mat image = preprocess->do_preprocess( cv::imread( image_name, -1 ) );
-
+        // Create an April grid calibration target
         aslam::cameras::GridCalibrationTargetAprilgrid aprilgrid( boardSize.height,
                                                                   boardSize.width,
                                                                   0.075,
@@ -258,6 +259,7 @@ main( int argc, char** argv )
         std::vector< cv::Point2f > points2ds;
         std::vector< cv::Point3f > points3ds;
         std::vector< bool > outCornerObserved;
+        // Similar to chessboard.findCorners
         bool succ = aprilgrid.computeObservation( image, points2ds, outCornerObserved );
         points3ds = aprilgrid.points3d( );
         if ( succ )
@@ -275,14 +277,14 @@ main( int argc, char** argv )
                     points3_fin.push_back( points3ds.at( idx_p ) );
                 }
             }
-
+            // agnostic of whether it's a chessboard or april grid
             calibration.addChessboardData( points2_fin, points3_fin );
             calibration.addImage( image, image_name );
         }
         else
         {
             std::cout << "\033[31;47;1m"
-                      << "# INFO: Did not detect chessboard in image: "
+                      << "# INFO: Did not detect valid tag in image: "
                       << imageFilenames.at( image_index ) << "\033[0m" << std::endl;
         }
         chessboardFound.at( image_index ) = succ;
@@ -290,7 +292,7 @@ main( int argc, char** argv )
 
     if ( calibration.sampleCount( ) < 1 )
     {
-        std::cerr << "# ERROR: Insufficient number of detected chessboards." << std::endl;
+        std::cerr << "# ERROR: Insufficient number of detected tags." << std::endl;
         return 1;
     }
 
