@@ -19,6 +19,7 @@ backward::SignalHandling sh;
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
 
 #include <camera_model/calib/CameraCalibration.h>
 #include <camera_model/chessboard/Chessboard.h>

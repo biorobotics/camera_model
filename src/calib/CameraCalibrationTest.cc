@@ -10,6 +10,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
 
 #include "camera_model/camera_models/CameraFactory.h"
 #include "camera_model/camera_models/CostFunctionFactory.h"

@@ -9,6 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
+#include <iostream>
 #include <utility>
 #include <vector>
 
