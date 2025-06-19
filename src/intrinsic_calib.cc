@@ -344,7 +344,7 @@ main( int argc, char** argv )
             {
                 std::ostringstream ss;
                 ss << i;
-                cv::imwrite( result_images_save_folder + "calib_result_" + ss.str( )
+                cv::imwrite( result_images_save_folder + "/calib_result_" + ss.str( )
                              + ".jpg",
                              calibration.m_ImagesGoodShow.at( i ) );
             }

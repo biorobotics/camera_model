@@ -8,20 +8,19 @@ cv_utils::fisheye::PreProcess::PreProcess( const cv::Size _raw_image_size,
 , is_resize_only( false )
 {
     /* clang-format off */
-    if (    _raw_image_size.width >= _roi_size.width
-            && _raw_image_size.height >= _roi_size.height
-            && _center.x <= _raw_image_size.width
-            && _center.y <= _raw_image_size.height
-            && _roi_size.width != 0
-            && _roi_size.height != 0 )
-      is_preprocess = true;
+    if ((_raw_image_size.width >= _roi_size.width
+        && _raw_image_size.height >= _roi_size.height
+        && _center.x <= _raw_image_size.width
+        && _center.y <= _raw_image_size.height)
+        || (_roi_size.width >= 0 && _roi_size.height >= 0))
+        is_preprocess = true;
     else
-      is_preprocess = false;
+        is_preprocess = false;
     /* clang-format on */
 
-    if ( is_preprocess                               //
-         && _raw_image_size.width == _roi_size.width //
-         && _raw_image_size.height == _roi_size.height )
+    if (is_preprocess
+        && _roi_size.width == 0
+        && _roi_size.height == 0)
     {
         is_resize_only = true;
         std::cout << "[#INFO] resize_only." << std::endl;

@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(camera_model)
 
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 execute_process(COMMAND lsb_release -cs
     OUTPUT_VARIABLE LSB_RELEASE_ID_SHORT

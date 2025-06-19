@@ -62,8 +62,8 @@ class Chessboard
 
     bool matchCorners( ChessboardQuadPtr& quad1, int corner1, ChessboardQuadPtr& quad2, int corner2 ) const;
 
-    cv::Mat mImage;
-    cv::Mat mSketch;
+    cv::Mat mImage; // Gray image
+    cv::Mat mSketch; // BGR image
     std::vector< cv::Point2f > mCorners;
     cv::Size mBoardSize;
     bool mCornersFound;
