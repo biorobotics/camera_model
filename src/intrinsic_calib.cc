@@ -248,6 +248,7 @@ main( int argc, char** argv )
 #pragma omp parallel for private( image_index )
     for ( image_index = 0; image_index < imageFilenames.size( ); ++image_index )
     {
+        double start_time_img = camera_model::timeInSeconds( );
         std::string image_name = imageFilenames.at( image_index );
 
         cv::Mat image = preprocess->do_preprocess( cv::imread( image_name, -1 ) );
@@ -273,7 +274,13 @@ main( int argc, char** argv )
                       << imageFilenames.at( image_index ) << "\033[0m" << std::endl;
         }
         chessboardFound.at( image_index ) = chessboard.cornersFound( );
+        std::cout << "Process time for image " << image_index + 1 << ": "
+                  << std::fixed << std::setprecision( 3 )
+                  << camera_model::timeInSeconds( ) - start_time_img << " sec." << std::endl;
     }
+    std::cout << "Time processing all images: "
+              << std::fixed << std::setprecision( 3 )
+              << camera_model::timeInSeconds( ) - startTime_0 << " sec." << std::endl;
 
     if ( calibration.sampleCount( ) < 1 )
     {

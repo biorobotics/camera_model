@@ -12,6 +12,22 @@ GridCalibrationTargetBase::GridCalibrationTargetBase( size_t rows, size_t cols )
 {
 }
 
+GridCalibrationTargetBase::GridCalibrationTargetBase( cv::Mat& image, size_t rows, size_t cols )
+: _rows( rows )
+, _cols( cols )
+{
+    if ( image.channels( ) == 1 )
+    {
+        cv::cvtColor( image, mSketch, cv::COLOR_GRAY2BGR );
+        image.copyTo( mImage );
+    }
+    else
+    {
+        image.copyTo( mSketch );
+        cv::cvtColor( image, mImage, cv::COLOR_BGR2GRAY );
+    }
+}
+
 /// \brief get all points from the target expressed in the target frame
 Eigen::MatrixXd
 GridCalibrationTargetBase::points( void ) const

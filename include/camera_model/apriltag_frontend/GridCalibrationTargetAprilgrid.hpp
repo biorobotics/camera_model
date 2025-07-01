@@ -86,7 +86,8 @@ class GridCalibrationTargetAprilgrid : public GridCalibrationTargetBase
     };
 
     /// \brief initialize based on checkerboard geometry
-    GridCalibrationTargetAprilgrid( size_t tagRows,
+    GridCalibrationTargetAprilgrid( cv::Mat& image,
+                                    size_t tagRows,
                                     size_t tagCols,
                                     double tagSize,
                                     double tagSpacing,
@@ -94,10 +95,10 @@ class GridCalibrationTargetAprilgrid : public GridCalibrationTargetBase
 
     virtual ~GridCalibrationTargetAprilgrid( ) {}
 
-    /// \brief extract the calibration target points from an image and write to an observation
-    bool computeObservation( const cv::Mat& image,
-                             std::vector< cv::Point2f >& points2ds,
-                             std::vector< bool >& outCornerObserved ) const;
+    /// \brief extract the calibration target points from an grayscale image (`mImage`) and write to an observation
+    bool computeObservation( std::vector< cv::Point2f >& points2ds,
+                             std::vector< bool >& outCornerObserved,
+                             bool verbose = true ) const;
 
     private:
     /// \brief initialize the object

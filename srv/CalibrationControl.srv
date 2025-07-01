@@ -1,0 +1,4 @@
+int32 action # 1 for proceed to phase two, 2 for cancel
+---
+bool success
+string message

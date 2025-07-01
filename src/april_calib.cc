@@ -34,6 +34,8 @@ main( int argc, char** argv )
     cv::ocl::setUseOpenCL( false );
     cv::Size boardSize;
     float squareSize;
+    double tagSize;
+    double tagSpacing;
     std::string inputDir;
     std::string cameraModel;
     std::string cameraName;
@@ -62,7 +64,9 @@ main( int argc, char** argv )
         ( "help", "produce help message" )
         ( "width,w", value< int >( &boardSize.width )->default_value( 8 ), "Number of inner corners on the chessboard pattern in x direction" )
         ( "height,h", value< int >( &boardSize.height )->default_value( 12 ), "Number of inner corners on the chessboard pattern in y direction" )
-        ( "size,s", value< float >( &squareSize )->default_value( 7.f ), "Size of one square in mm" )
+        ( "size,s", value< float >( &squareSize )->default_value( 7.f ), "Size of one square in mm. Not in use in april grid calibration" )
+        ( "tag-size", value< double >( &tagSize )->default_value( 0.0275 ), "Size of one tag in m" )
+        ( "tag-spacing", value< double >( &tagSpacing )->default_value( 0.3 ), "spacing [m] / tagSize [m]" )
         ( "input,i", value< std::string >( &inputDir )->default_value( "calibrationdata" ), "Input directory containing chessboard images" )
         ( "prefix,p", value< std::string >( &prefix )->default_value( "" ), "Prefix of images" )
         ( "file-extension,e", value< std::string >( &fileExtension )->default_value( ".png" ),"File extension of images" )
@@ -248,20 +252,23 @@ main( int argc, char** argv )
 #pragma omp parallel for private( image_index )
     for ( image_index = 0; image_index < imageFilenames.size( ); ++image_index )
     {
+        double start_time_img = camera_model::timeInSeconds( );
         std::string image_name = imageFilenames.at( image_index );
 
         cv::Mat image = preprocess->do_preprocess( cv::imread( image_name, -1 ) );
         // Create an April grid calibration target
-        aslam::cameras::GridCalibrationTargetAprilgrid aprilgrid( boardSize.height,
-                                                                  boardSize.width,
-                                                                  0.075,
-                                                                  0.2 );
+        aslam::cameras::GridCalibrationTargetAprilgrid 
+        aprilgrid(image, 
+                boardSize.height,
+                boardSize.width,
+                tagSize,
+                tagSpacing);
 
         std::vector< cv::Point2f > points2ds;
         std::vector< cv::Point3f > points3ds;
         std::vector< bool > outCornerObserved;
         // Similar to chessboard.findCorners
-        bool succ = aprilgrid.computeObservation( image, points2ds, outCornerObserved );
+        bool succ = aprilgrid.computeObservation( points2ds, outCornerObserved );
         points3ds = aprilgrid.points3d( );
         if ( succ )
         {
@@ -289,7 +296,13 @@ main( int argc, char** argv )
                       << imageFilenames.at( image_index ) << "\033[0m" << std::endl;
         }
         chessboardFound.at( image_index ) = succ;
+        std::cout << "Process time for image " << image_index + 1 << ": "
+                  << std::fixed << std::setprecision( 3 )
+                  << camera_model::timeInSeconds( ) - start_time_img << " sec." << std::endl;
     }
+    std::cout << "Time processing all images: "
+              << std::fixed << std::setprecision( 3 )
+              << camera_model::timeInSeconds( ) - startTime_0 << " sec." << std::endl;
 
     if ( calibration.sampleCount( ) < 1 )
     {

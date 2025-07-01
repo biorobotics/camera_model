@@ -9,6 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -34,6 +35,8 @@ class GridCalibrationTargetBase
     public:
     /// \brief initialize base class
     GridCalibrationTargetBase( size_t rows, size_t cols );
+    GridCalibrationTargetBase( cv::Mat& image, size_t rows, size_t cols );
+
     virtual ~GridCalibrationTargetBase( ) {}
 
     public:
@@ -71,7 +74,8 @@ class GridCalibrationTargetBase
     ///        in outImagePoints was observed
     virtual bool computeObservation( const cv::Mat& /*image*/,
                                      std::vector< cv::Point2f >& /*outImagePoints*/,
-                                     std::vector< bool >& /*outCornerObserved*/ ) const
+                                     std::vector< bool >& /*outCornerObserved*/,
+                                     bool verbose = true) const
     {
         std::cout << "you need to implement this method for each target!";
         return false;
@@ -89,6 +93,9 @@ class GridCalibrationTargetBase
 
     /// \brief the number of point columns in the calibration target
     size_t _cols;
+
+    cv::Mat mImage; // Gray image
+    cv::Mat mSketch; // BGR image
 
     ///////////////////////////////////////////////////
     // Serialization support

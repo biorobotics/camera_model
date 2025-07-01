@@ -23,7 +23,7 @@ class CameraCalibration
     void clear( void );
 
     /**
-     * @brief Add chessboard data to the calibration.
+     * @brief Add chessboard data to the calibration. This version is used in chessboard calibration, where `squareSize` [mm] is used to determine the 3D scene points.
      * @param corners Detected corners in the image.
      * This function adds the detected corners of a chessboard pattern to the calibration data.
      * It also generates the corresponding 3D scene points based on the board size and square size.
@@ -32,7 +32,7 @@ class CameraCalibration
     void addChessboardData( const std::vector< cv::Point2f >& corners );
 
     /**
-     * @brief Add chessboard data to the calibration with specified scene points.
+     * @brief Add chessboard data to the calibration with specified scene points. This version is used in april grid calibration, where `scene_pts` are calculated from the april grid without using `squareSize`.
      * @param corners Detected corners in the image.
      * @param scene_pts Corresponding 3D scene points.
      * This function adds the detected corners of a chessboard pattern along with their corresponding 3D scene points to the calibration data.
@@ -70,6 +70,11 @@ class CameraCalibration
                       const std::vector< cv::Mat > cameraPoseTs,
                       const std::vector< std::vector< cv::Point2f > > imagePoints,
                       const std::vector< std::vector< cv::Point3f > > scenePoints ) const;
+
+    void drawDetectionResultOne(
+        cv::Mat& image,
+        std::vector<cv::Point2f> imagePoints) const;
+
     void save2D( std::string point_file ) const;
     void writeParams( const std::string& filename ) const;
 
@@ -77,6 +82,9 @@ class CameraCalibration
     bool readChessboardData( const std::string& filename );
 
     void setVerbose( bool verbose );
+
+    double getErrorMean( void ) const;
+
 
     private:
     bool calibrateHelper( CameraPtr& camera,
@@ -140,6 +148,8 @@ class CameraCalibration
     Eigen::Matrix2d m_measurementCovariance;
 
     bool m_verbose;
+
+    Eigen::Vector2d m_errMean = Eigen::Vector2d::Zero();
 
     public:
     std::vector< cv::Mat > m_ImagesShow;

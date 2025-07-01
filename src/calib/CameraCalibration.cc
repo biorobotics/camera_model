@@ -193,6 +193,7 @@ CameraCalibration::calibrate( void )
     std::cout << "Recalibration done." << std::endl;
 
     Eigen::Vector2d errMean = errSum / static_cast< double >( errCount );
+    m_errMean = errMean;
 
     Eigen::Matrix2d measurementCovariance = Eigen::Matrix2d::Zero( );
     for ( size_t i = 0; i < errVec.size( ); ++i )
@@ -408,6 +409,42 @@ CameraCalibration::drawResults( std::vector< cv::Mat >& images,
 }
 
 void
+CameraCalibration::drawDetectionResultOne(
+    cv::Mat& image,
+    std::vector<cv::Point2f> imagePoints) const
+{
+    if (image.channels() == 1)
+    {
+        cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
+    }
+
+    cv::Scalar green(0, 255, 0);
+    int drawShiftBits = 4;
+    int drawMultiplier = 1 << drawShiftBits;
+
+    int r_show = 5;
+    double show_unit = 1;
+    show_unit = sqrt(image.rows * image.rows + image.cols * image.cols) / 900;
+    if (show_unit < 1.0)
+        show_unit = 1.0;
+    r_show = 5 * show_unit;
+
+    for (size_t j = 0; j < imagePoints.size(); ++j)
+    {
+        cv::Point2f pObs = imagePoints.at(j);
+
+        // green points is the observed points
+        cv::circle(image,
+            cv::Point(cvRound(pObs.x * drawMultiplier), cvRound(pObs.y * drawMultiplier)),
+            r_show,
+            green,
+            show_unit * 2,
+            cv::LINE_AA, // CV_AA,
+            drawShiftBits);
+    }
+}
+
+void
 CameraCalibration::writeParams( const std::string& filename ) const
 {
     m_camera->writeParametersToYamlFile( filename );
@@ -579,6 +616,11 @@ CameraCalibration::calibrateHelper( CameraPtr& camera,
                                     tvecs.at( i ) );
     }
     return true;
+}
+
+double CameraCalibration::getErrorMean() const
+{
+    return m_errMean.norm();
 }
 
 bool

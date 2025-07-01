@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(camera_model)
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -20,6 +20,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fPIC -fopenmp")
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     std_msgs
+    sensor_msgs
+    cv_bridge
+    message_generation
     )
 
 
@@ -42,10 +45,25 @@ message(STATUS "    libraries: ${OpenCV_LIBS}")
 message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "Eigen library path: ${EIGEN3_INCLUDE_DIR}")
 
+add_message_files(
+    FILES
+    CalibrationProgress.msg
+)
+
+add_service_files(
+    FILES
+    CalibrationControl.srv
+)
+
+generate_messages(
+    DEPENDENCIES
+    std_msgs
+)
+
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES camera_model
-    CATKIN_DEPENDS roscpp std_msgs
+    CATKIN_DEPENDS roscpp std_msgs sensor_msgs cv_bridge message_runtime
 #    DEPENDS system_lib
     )
 
@@ -79,6 +97,25 @@ set(CAMERA_MODEL_FILES
     ${AprilTagSrc2}
     )
 
+set(CALIB_ROUTINE_FILES
+    ${PROJECT_SOURCE_DIR}/src/calib_routine/calib_utils.cpp
+    ${PROJECT_SOURCE_DIR}/src/calib_routine/calibration_config.cpp
+    ${PROJECT_SOURCE_DIR}/src/calib_routine/calibration_target_detector.cpp
+    ${PROJECT_SOURCE_DIR}/src/calib_routine/intrinsics_calibration_routine.cpp
+    )
+
+add_executable(calibration_node
+    src/calib_routine/calibration_node.cpp
+    src/calib/CameraCalibration.cc
+    ${CALIB_ROUTINE_FILES}
+    ${CAMERA_MODEL_FILES}
+    )
+
+add_dependencies(calibration_node 
+    ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+    ${catkin_EXPORTED_TARGETS}
+    )
+
 add_executable(Calibration 
     src/intrinsic_calib.cc
     src/chessboard/Chessboard.cc
@@ -106,6 +143,12 @@ add_library(camera_model STATIC
     ${CAMERA_MODEL_FILES}
     )
 
+target_link_libraries(calibration_node
+    ${catkin_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${CERES_LIBRARIES}
+    dw    )
 target_link_libraries(Calibration
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}

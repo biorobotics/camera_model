@@ -13,13 +13,14 @@ namespace aslam
 namespace cameras
 {
 
-/// \brief Construct an Aprilgrid calibration target
-///        tagRows:    number of tags in y-dir (gridRows = 2*tagRows)
-///        tagCols:    number of tags in x-dir (gridCols = 2*tagCols)
-///        tagSize:    size of a tag [m]
-///        tagSpacing: space between tags (tagSpacing = spacing[m] / tagSize)
+/// @brief Construct an Aprilgrid calibration target.
+/// @param image:      image in which the target is detected, BGR or gray
+/// @param tagRows:    number of tags in y-dir (gridRows = 2*tagRows)
+/// @param tagCols:    number of tags in x-dir (gridCols = 2*tagCols)
+/// @param tagSize:    size of a tag [m]
+/// @param tagSpacing: space between tags (tagSpacing = spacing[m] / tagSize)
 ///
-///        corner ordering in _points :
+/// @details corner ordering in _points :
 ///          12-----13  14-----15
 ///          | TAG 3 |  | TAG 4 |
 ///          8-------9  10-----11
@@ -28,8 +29,8 @@ namespace cameras
 ///   ^      0-------1  2-------3
 ///   |-->x
 GridCalibrationTargetAprilgrid::GridCalibrationTargetAprilgrid(
-size_t tagRows, size_t tagCols, double tagSize, double tagSpacing, const AprilgridOptions& options )
-: GridCalibrationTargetBase( 2 * tagRows, 2 * tagCols )
+    cv::Mat& image, size_t tagRows, size_t tagCols, double tagSize, double tagSpacing, const AprilgridOptions& options )
+: GridCalibrationTargetBase( image, 2 * tagRows, 2 * tagCols )
 , // 4 points per tag
 _tagSize( tagSize )
 , _tagSpacing( tagSpacing )
@@ -105,14 +106,15 @@ GridCalibrationTargetAprilgrid::createGridPoints( )
 
 /// \brief extract the calibration target points from an image and write to an observation
 bool
-GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
-                                                    std::vector< cv::Point2f >& points2ds,
-                                                    std::vector< bool >& outCornerObserved ) const
+GridCalibrationTargetAprilgrid::computeObservation( 
+    std::vector< cv::Point2f >& points2ds,
+    std::vector< bool >& outCornerObserved,
+    bool verbose ) const
 {
     bool success = true;
 
     // detect the tags
-    std::vector< AprilTags::TagDetection > detections = _tagDetector->extractTags( image );
+    std::vector< AprilTags::TagDetection > detections = _tagDetector->extractTags( mImage );
 
     /* handle the case in which a tag is identified but not all tag
      * corners are in the image (all data bits in image but border
@@ -130,9 +132,9 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
         for ( int j = 0; j < 4; j++ )
         {
             remove |= iter->p[j].first < _options.minBorderDistance;
-            remove |= iter->p[j].first > ( float )( image.cols ) - _options.minBorderDistance; // width
+            remove |= iter->p[j].first > ( float )( mImage.cols ) - _options.minBorderDistance; // width
             remove |= iter->p[j].second < _options.minBorderDistance;
-            remove |= iter->p[j].second > ( float )( image.rows ) - _options.minBorderDistance; // height
+            remove |= iter->p[j].second > ( float )( mImage.rows ) - _options.minBorderDistance; // height
         }
 
         // also remove tags that are flagged as bad
@@ -146,7 +148,7 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
         // delete flagged tags
         if ( remove )
         {
-            std::cout << "Tag with ID " << iter->id << " is only partially in image (corners outside) and will be removed from the TargetObservation.\n";
+            // std::cout << "Tag with ID " << iter->id << " is only partially in image (corners outside) and will be removed from the TargetObservation.\n";
 
             // delete the tag and advance in list
             iter = detections.erase( iter );
@@ -172,9 +174,18 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
     // sort detections by tagId
     std::sort( detections.begin( ), detections.end( ), AprilTags::TagDetection::sortByIdCompare );
 
+    // print all tag ids that were detected
+    if ( verbose )
+    {
+        std::cout << "Detected " << detections.size( ) << " tags in image: ";
+        for ( unsigned i = 0; i < detections.size( ); i++ )
+            std::cout << detections[i].id << ", ";
+        std::cout << std::endl;
+    }
+
     // check for duplicate tagIds (--> if found: wild Apriltags in image not belonging to
     // calibration target) (only if we have more than 1 tag...)
-    if ( detections.size( ) > 1 )
+    if ( verbose && detections.size( ) > 1 )
     {
         for ( unsigned i = 0; i < detections.size( ) - 1; i++ )
             if ( detections[i].id == detections[i + 1].id )
@@ -184,8 +195,7 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
                 cv::namedWindow( "Wild Apriltag detected. Hide them!" );
                 cvStartWindowThread( );
 
-                cv::Mat imageCopy = image.clone( );
-                cv::cvtColor( imageCopy, imageCopy, CV_GRAY2RGB );
+                cv::Mat imageCopy = mSketch.clone( );
 
                 // mark all duplicate tags in image
                 for ( int j = 0; i < detections.size( ) - 1; i++ )
@@ -252,7 +262,7 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
 
     // optional subpixel refinement on all tag corners (four corners each tag)
     if ( _options.doSubpixRefinement && success )
-        cv::cornerSubPix( image,
+        cv::cornerSubPix( mImage,
                           tagCorners,
                           cv::Size( 2, 2 ),
                           cv::Size( -1, -1 ),
@@ -261,8 +271,7 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
     if ( _options.showExtractionVideo )
     {
         // image with refined (blue) and raw corners (red)
-        cv::Mat imageCopy1 = image.clone( );
-        cv::cvtColor( imageCopy1, imageCopy1, CV_GRAY2RGB );
+        cv::Mat imageCopy1 = mSketch.clone( );
         for ( unsigned i = 0; i < detections.size( ); i++ )
             for ( unsigned j = 0; j < 4; j++ )
             {
@@ -293,8 +302,7 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
         cv::waitKey( 1 );
 
         /* copy image for modification */
-        cv::Mat imageCopy2 = image.clone( );
-        cv::cvtColor( imageCopy2, imageCopy2, CV_GRAY2RGB );
+        cv::Mat imageCopy2 = mSketch.clone( );
         /* highlight detected tags in image */
         for ( unsigned i = 0; i < detections.size( ); i++ )
         {
@@ -372,9 +380,12 @@ GridCalibrationTargetAprilgrid::computeObservation( const cv::Mat& image,
             }
             else
             {
-                std::cout << "Subpix refinement failed for point: " << pIdx[j]
-                          << " with displacement: " << sqrt( subpix_displacement_squarred )
-                          << "(point removed) \n";
+                if ( verbose )
+                {
+                    std::cout << "Subpix refinement failed for point: " << pIdx[j]
+                            << " with displacement: " << sqrt( subpix_displacement_squarred )
+                            << "(point removed) \n";
+                }
                 outCornerObserved[pIdx[j]] = false;
             }
         }
