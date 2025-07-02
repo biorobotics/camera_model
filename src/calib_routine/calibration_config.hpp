@@ -17,8 +17,8 @@
 
 enum class CalibrationType
 {
-    INTRINSICS,
-    CAMERA_LASER
+    INTRINSICS = 0,
+    CAMERA_LASER = 1
 };
 
 enum class CalibrationPhase
@@ -64,31 +64,66 @@ struct CalibrationConfig
     cv::Point roi_center = {0, 0}; // optional
 
     // File paths
-    // std::string storage_path = "/tmp/calib_data";
-    std::string result_output_path = "/home/tina/Documents/test_ws/src/camera_model/test_data/aprilgrid/my_results";
+    std::string result_fname = "~/calib_result.yaml"; // default output calib params yaml file. The actual yaml should be <date_time>.yaml
+    std::string routine_data_save_folder = "~/data/intrinsics";
+
+    double max_error_threshold = 20.0; // px
 
     // Misc
     bool verbose = true;
 
-    // Optional runtime utilities
-    // std::string image_topic = "/camera/image/compressed";
-
-    double max_error_threshold = 20.0; // px
+    /**
+     * @brief Set the result output file path for calibration results.
+     * @note This field doesn't exist in the yaml file, user need to set it manually.
+     *
+     * @param path The absolute path of the yaml file storing calib params.
+     */
+    void setResultFname(const std::string &path)
+    {
+        result_fname = path;
+    }
 
     /**
-     * @brief Get the camera model type based on the model name.
-     * @param model_name The name of the camera model.
-     * @param verbose Whether to print verbose information.
-     * @return The camera model type.
+     * @brief Set the folder where calibration data will be saved.
+     * @note This field doesn't exist in the yaml file, user need to set it manually.
+     *
+     * @param folder The absolute path of the folder to save calibration data.
      */
-    camera_model::Camera::ModelType toCameraModelType(const std::string &model_name, bool verbose = false);
+    void setRoutineDataSaveFolder(const std::string &folder)
+    {
+        routine_data_save_folder = folder;
+    }
 
-    /**
-     * @brief Print camera model information based on the model type.
-     * @param modelType The camera model type.
-     */
-    void printCameraModelInfo(const camera_model::Camera::ModelType &modelType);
+    // print struct
+    friend std::ostream &operator<<(std::ostream &os, const CalibrationConfig &config);
 };
+
+namespace calibration_config
+{
+    /**
+     * @brief Convert a string to a CalibrationType enum.
+     *
+     * @param calib_type_str options: "intrinsics", "camera-laser"
+     * @note Throws std::invalid_argument if the string does not match any known type.
+     *
+     */
+    CalibrationType toCalibrationType(const std::string &calib_type_str);
+
+    /**
+     * @brief Convert a CalibrationType enum to a string representation.
+     *
+     * @param type
+     */
+    std::string toString(CalibrationType type);
+
+    /**
+     * @brief Load calibration configuration from a YAML file.
+     *
+     * @param filename Absolute path to the YAML configuration file.
+     * @return CalibrationConfig The loaded configuration.
+     */
+    CalibrationConfig loadConfigFromYaml(const std::string &filename);
+}
 
 /**
  * @brief Factory class to create calibration routines based on type.

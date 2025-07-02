@@ -201,6 +201,22 @@ class Camera
     cv::Mat m_mask;
 };
 
+/**
+ * @brief Get the camera model type based on the model name.
+ * @param model_name_in The name of the camera model. Case insensitive.
+
+ * @return The camera model type.
+ */
+camera_model::Camera::ModelType toCameraModelType(const std::string &model_name_in);
+
+/**
+ * @brief Convert a camera model type to a string representation.
+ *
+ * @param modelType
+ * @return all lowercase
+ */
+std::string modelTypeToString(camera_model::Camera::ModelType modelType);
+
 typedef boost::shared_ptr< Camera > CameraPtr;
 typedef boost::shared_ptr< const Camera > CameraConstPtr;
 }

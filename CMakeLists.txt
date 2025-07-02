@@ -35,6 +35,8 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(OpenCV REQUIRED)
 
+find_package(yaml-cpp REQUIRED)
+
 #set(EIGEN_INCLUDE_DIR "/usr/local/include/eigen3")
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIRS})
@@ -148,26 +150,31 @@ target_link_libraries(calibration_node
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-    dw    )
+    dw
+    yaml-cpp)
 target_link_libraries(Calibration
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-    dw    )
+    dw
+    yaml-cpp)
 target_link_libraries(april_calib
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-    dw    )
+    dw
+    yaml-cpp)
 target_link_libraries(Test
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-     dw    )
+     dw
+     yaml-cpp)
 target_link_libraries(camera_model
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
-    ${CERES_LIBRARIES} )
+    ${CERES_LIBRARIES}
+    yaml-cpp)
 
 
 

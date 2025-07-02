@@ -250,8 +250,8 @@ void IntrinsicsCalibrationRoutine::performCalibration()
         return;
     }
     // write to local (base station), also send to robot
-    std::string output_path = config_.result_output_path + "/" + config_.camera_name + "_intrinsics_calibration.yaml";
-    saveResults(output_path);
+    /// @todo load previous config, and replace just one section
+    saveResults(config_.result_fname);
 
     ROS_INFO("Intrinsics calibration complete.");
     progress_msg.success = true;

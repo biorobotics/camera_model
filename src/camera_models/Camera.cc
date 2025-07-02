@@ -6,6 +6,7 @@
 #include <camera_model/gpl/gpl.h>
 
 #include <opencv2/calib3d/calib3d.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace camera_model
 {
@@ -416,4 +417,87 @@ Ray::operator=( const Ray& other )
     }
     return *this;
 }
+}
+
+std::string camera_model::modelTypeToString(camera_model::Camera::ModelType modelType)
+{
+    if (modelType == camera_model::Camera::KANNALA_BRANDT)
+    {
+        return "kannala-brandt";
+    }
+    else if (modelType == camera_model::Camera::MEI)
+    {
+        return "mei";
+    }
+    else if (modelType == camera_model::Camera::PINHOLE)
+    {
+        return "pinhole";
+    }
+    else if (modelType == camera_model::Camera::PINHOLE_FULL)
+    {
+        return "pinhole2";
+    }
+    else if (modelType == camera_model::Camera::SCARAMUZZA)
+    {
+        return "scaramuzza";
+    }
+    else if (modelType == camera_model::Camera::POLYFISHEYE)
+    {
+        return "myfisheye";
+    }
+    else if (modelType == camera_model::Camera::SPLINE)
+    {
+        return "spline";
+    }
+    else if (modelType == camera_model::Camera::FOV)
+    {
+        return "fov";
+    }
+    else
+    {
+        throw std::invalid_argument("Unknown camera model type");
+    }
+}
+
+camera_model::Camera::ModelType camera_model::toCameraModelType(const std::string &model_name_in)
+{
+    std::string model_name = boost::algorithm::to_lower_copy(model_name_in);
+    camera_model::Camera::ModelType modelType = camera_model::Camera::PINHOLE;
+    if (boost::iequals(model_name, "kannala-brandt"))
+    {
+        modelType = camera_model::Camera::KANNALA_BRANDT;
+    }
+    else if (boost::iequals(model_name, "mei"))
+    {
+        modelType = camera_model::Camera::MEI;
+    }
+    else if (boost::iequals(model_name, "pinhole"))
+    {
+        modelType = camera_model::Camera::PINHOLE;
+    }
+    else if (boost::iequals(model_name, "pinhole2"))
+    {
+        modelType = camera_model::Camera::PINHOLE_FULL;
+    }
+    else if (boost::iequals(model_name, "scaramuzza"))
+    {
+        modelType = camera_model::Camera::SCARAMUZZA;
+    }
+    else if (boost::iequals(model_name, "myfisheye"))
+    {
+        modelType = camera_model::Camera::POLYFISHEYE;
+    }
+    else if (boost::iequals(model_name, "spline"))
+    {
+        modelType = camera_model::Camera::SPLINE;
+    }
+    else if (boost::iequals(model_name, "fov"))
+    {
+        modelType = camera_model::Camera::FOV;
+    }
+    else
+    {
+        throw std::invalid_argument("Unknown camera model type");
+    }
+    return modelType;
 }
