@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include <boost/shared_ptr.hpp>
+#include <boost/algorithm/string.hpp>
 #include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/types_c.h>

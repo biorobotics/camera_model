@@ -967,7 +967,7 @@ PolyFisheyeCamera::Parameters::readFromYamlFile( const std::string& filename )
         std::string sModelType;
         fs["model_type"] >> sModelType;
 
-        if ( sModelType.compare( "POLYFISHEYE" ) != 0 )
+        if (!boost::iequals(sModelType, "POLYFISHEYE"))
         {
             return false;
         }

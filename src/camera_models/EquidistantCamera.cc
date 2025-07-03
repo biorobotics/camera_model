@@ -152,7 +152,7 @@ EquidistantCamera::Parameters::readFromYamlFile( const std::string& filename )
         std::string sModelType;
         fs["model_type"] >> sModelType;
 
-        if ( sModelType.compare( "KANNALA_BRANDT" ) != 0 )
+        if (!boost::iequals(sModelType, "KANNALA_BRANDT"))
         {
             return false;
         }
@@ -395,7 +395,7 @@ EquidistantCamera::estimateIntrinsics( const cv::Size& boardSize,
     if ( f0 <= 0.0 && minReprojErr >= std::numeric_limits< double >::max( ) )
     {
         std::cout << "[" << params.cameraName( ) << "] "
-                  << "# INFO: kannala-Brandt model fails with given data. " << std::endl;
+                  << "# INFO: kannala_Brandt model fails with given data. " << std::endl;
 
         return;
     }

@@ -176,7 +176,7 @@ CataCamera::Parameters::readFromYamlFile( const std::string& filename )
         std::string sModelType;
         fs["model_type"] >> sModelType;
 
-        if ( sModelType.compare( "MEI" ) != 0 )
+        if (!boost::iequals(sModelType, "MEI"))
         {
             return false;
         }

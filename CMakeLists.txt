@@ -108,6 +108,7 @@ set(CALIB_ROUTINE_FILES
 
 add_executable(calibration_node
     src/calib_routine/calibration_node.cpp
+    src/calib_routine/io_utils.cpp
     src/calib/CameraCalibration.cc
     ${CALIB_ROUTINE_FILES}
     ${CAMERA_MODEL_FILES}
@@ -117,6 +118,10 @@ add_dependencies(calibration_node
     ${${PROJECT_NAME}_EXPORTED_TARGETS} 
     ${catkin_EXPORTED_TARGETS}
     )
+
+add_executable(file_test
+    src/calib_routine/file_test.cpp
+)
 
 add_executable(Calibration 
     src/intrinsic_calib.cc
@@ -152,29 +157,29 @@ target_link_libraries(calibration_node
     ${CERES_LIBRARIES}
     dw
     yaml-cpp)
+target_link_libraries(file_test
+    ${Boost_LIBRARIES}
+    ${OpenCV_LIBS}
+    )
 target_link_libraries(Calibration
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-    dw
-    yaml-cpp)
+    dw)
 target_link_libraries(april_calib
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-    dw
-    yaml-cpp)
+    dw)
 target_link_libraries(Test
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
-     dw
-     yaml-cpp)
+     dw)
 target_link_libraries(camera_model
     ${Boost_LIBRARIES}
     ${OpenCV_LIBS}
-    ${CERES_LIBRARIES}
-    yaml-cpp)
+    ${CERES_LIBRARIES})
 
 
 

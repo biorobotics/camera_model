@@ -423,7 +423,7 @@ std::string camera_model::modelTypeToString(camera_model::Camera::ModelType mode
 {
     if (modelType == camera_model::Camera::KANNALA_BRANDT)
     {
-        return "kannala-brandt";
+        return "kannala_brandt";
     }
     else if (modelType == camera_model::Camera::MEI)
     {
@@ -435,7 +435,7 @@ std::string camera_model::modelTypeToString(camera_model::Camera::ModelType mode
     }
     else if (modelType == camera_model::Camera::PINHOLE_FULL)
     {
-        return "pinhole2";
+        return "pinhole_full";
     }
     else if (modelType == camera_model::Camera::SCARAMUZZA)
     {
@@ -443,7 +443,7 @@ std::string camera_model::modelTypeToString(camera_model::Camera::ModelType mode
     }
     else if (modelType == camera_model::Camera::POLYFISHEYE)
     {
-        return "myfisheye";
+        return "polyfisheye";
     }
     else if (modelType == camera_model::Camera::SPLINE)
     {
@@ -463,7 +463,7 @@ camera_model::Camera::ModelType camera_model::toCameraModelType(const std::strin
 {
     std::string model_name = boost::algorithm::to_lower_copy(model_name_in);
     camera_model::Camera::ModelType modelType = camera_model::Camera::PINHOLE;
-    if (boost::iequals(model_name, "kannala-brandt"))
+    if (boost::iequals(model_name, "kannala_brandt"))
     {
         modelType = camera_model::Camera::KANNALA_BRANDT;
     }
@@ -475,7 +475,7 @@ camera_model::Camera::ModelType camera_model::toCameraModelType(const std::strin
     {
         modelType = camera_model::Camera::PINHOLE;
     }
-    else if (boost::iequals(model_name, "pinhole2"))
+    else if (boost::iequals(model_name, "pinhole_full"))
     {
         modelType = camera_model::Camera::PINHOLE_FULL;
     }
@@ -483,7 +483,7 @@ camera_model::Camera::ModelType camera_model::toCameraModelType(const std::strin
     {
         modelType = camera_model::Camera::SCARAMUZZA;
     }
-    else if (boost::iequals(model_name, "myfisheye"))
+    else if (boost::iequals(model_name, "polyfisheye"))
     {
         modelType = camera_model::Camera::POLYFISHEYE;
     }

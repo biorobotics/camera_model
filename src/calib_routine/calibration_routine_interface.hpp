@@ -20,7 +20,10 @@ public:
     virtual void handleImage(const sensor_msgs::CompressedImageConstPtr &msg) = 0;
 
     virtual void beginPhaseTwo() = 0;
-    virtual void saveResults(const std::string &output_path) = 0;
+    virtual void saveResults() = 0;
+
+    virtual void updateCalibrationResult(const std::string &input_file,
+                                         const std::string &output_file) = 0;
 
     virtual void setOnFinishCallback(std::function<void()> cb) = 0;
 };

@@ -41,7 +41,7 @@ To use this package, need:
 Use [intrinsic_calib.cc](https://github.com/dvorak0/camera_model/blob/master/src/intrinsic_calib.cc) to calibrate your camera.
 The template is like [fisheye_calibration.sh](https://github.com/gaowenliang/camera_model/blob/master/calibrate_template/fisheye_calibration.sh):
 
->  ./Calibration --camera-name mycamera --input mycameara_images/ -p IMG -e png -w 11 -h 8 --size 70 --camera-model myfisheye --opencv true
+>  ./Calibration --camera-name mycamera --input mycameara_images/ -p IMG -e png -w 11 -h 8 --size 70 --camera-model polyfisheye --opencv true
 
 
 # USE:

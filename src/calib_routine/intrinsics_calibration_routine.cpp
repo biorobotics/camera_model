@@ -10,6 +10,7 @@
 #include "intrinsics_calibration_routine.hpp"
 #include "calibration_target_detector.hpp"
 #include "camera_model/camera_models/Camera.h"
+#include "io_utils.h"
 #include <std_msgs/Int32MultiArray.h>
 #include "camera_model/CalibrationProgress.h"
 #include <sensor_msgs/CompressedImage.h>
@@ -19,6 +20,9 @@
 #include <opencv2/highgui.hpp>
 #include <iostream>
 #include <thread>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 IntrinsicsCalibrationRoutine::IntrinsicsCalibrationRoutine(
     ros::NodeHandle &nh,
@@ -157,10 +161,150 @@ void IntrinsicsCalibrationRoutine::beginPhaseTwo()
         .detach();
 }
 
-void IntrinsicsCalibrationRoutine::saveResults(const std::string &output_path)
+void IntrinsicsCalibrationRoutine::saveResults()
 {
-    ROS_INFO("Calibration results saved to: %s", output_path.c_str());
-    calibration_.writeParams(output_path);
+    /// step 1: get the current time and use that to name the output yaml file
+    // get a string of date and time
+    std::time_t now = std::time(nullptr);
+    std::tm *tm = std::localtime(&now);
+    char buffer[80];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d_%H-%M-%S", tm);
+    std::string timestamp(buffer);
+    // this file will be a monolithic yaml file with latest calibration params
+    // e.g. if intrinsics calib is performed, this file will copy all params
+    // from the latest calib result yaml and overwrite only the intrinsics part
+    fs::path result_file_path(config_.result_output_folder);
+    result_file_path /= (timestamp + ".yaml");
+    std::string result_file = result_file_path.string();
+
+    // step 2: iterate the result output folder, sort all files and find the one with the latest timestamp
+    std::string ref_file = io_utils::findLastSortedFileDescending(config_.result_output_folder);
+    if (ref_file.empty())
+    {
+        ROS_WARN("No previous calibration results found");
+        // copy from a template file (which should exist)
+        fs::path template_file_path(config_.frontend_path);
+        template_file_path = template_file_path / "calibration" /
+                             "assets" / "template_slam.yaml";
+        if (!fs::exists(template_file_path))
+        {
+            ROS_ERROR("Template file does not exist: %s",
+                      template_file_path.string().c_str());
+            return;
+        }
+        ref_file = template_file_path.string();
+        ROS_INFO("Using template file for calibration result: %s",
+                 ref_file.c_str());
+    }
+    else
+    {
+        ROS_INFO("Found last calibration result file: %s", ref_file.c_str());
+    }
+
+    /// step 3: overwrite the intrinsics section of the yaml file
+    updateCalibrationResult(ref_file, result_file);
+
+    ROS_INFO("Calibration results saved to: %s", result_file.c_str());
+}
+
+void IntrinsicsCalibrationRoutine::updateCalibrationResult(
+    const std::string &input_file,
+    const std::string &output_file)
+{
+    // write only the intrinsics calib params to a temp file
+    const std::string temp_file = "/tmp/new_intrinsics_calib_result_block.yaml";
+    calibration_.writeParams(temp_file);
+
+    // Load original YAML file
+    std::ifstream original_in(input_file);
+    if (!original_in.is_open())
+    {
+        std::cerr << "Failed to open input YAML: " << input_file << std::endl;
+        return;
+    }
+    std::stringstream original_buffer;
+    original_buffer << original_in.rdbuf();
+    std::string original_content = original_buffer.str();
+    original_in.close();
+
+    // Load new camera block
+    std::ifstream block_in(temp_file);
+    if (!block_in.is_open())
+    {
+        std::cerr << "Failed to read temp camera YAML block." << std::endl;
+        return;
+    }
+    std::stringstream block_buffer;
+    std::string line;
+    while (std::getline(block_in, line))
+    {
+        if (line.find("%YAML") != std::string::npos ||
+            line.find("---") != std::string::npos)
+            continue; // skip YAML header and separator
+        block_buffer << line << "\n";
+    }
+    // the content of the calibrated param block, only
+    std::string new_block = block_buffer.str();
+    block_in.close();
+
+    // Rewrite original content with new camera block
+    std::stringstream output_yaml;
+    std::istringstream original_lines(original_content);
+
+    bool inside_block = false;
+    bool block_inserted = false;
+
+    while (std::getline(original_lines, line))
+    {
+        if (!inside_block && (line.find("model_type:") != std::string::npos))
+        {
+            // Start replacing the block
+            inside_block = true;
+            output_yaml << new_block;
+            block_inserted = true;
+            continue; // Skip the original model_type line
+        }
+
+        // Detect end of block heuristically
+        if (inside_block)
+        {
+            // If it's an empty line, we consider the block ended
+            if (line.empty())
+            {
+                inside_block = false;        // End of camera block
+                output_yaml << line << "\n"; // Keep this line
+            }
+
+            continue; // Skip old block lines
+        }
+
+        // Copy everything else
+        output_yaml << line << "\n";
+    }
+
+    if (!block_inserted)
+    {
+        std::cerr << "Warning: Camera block not found or inserted. Check anchors." << std::endl;
+    }
+
+    std::string final_yaml = output_yaml.str();
+    // Remove the last newline if present
+    if (!final_yaml.empty() && final_yaml.back() == '\n')
+    {
+        final_yaml.pop_back();
+    }
+
+    // Write updated YAML
+    std::ofstream out(output_file);
+    if (!out.is_open())
+    {
+        std::cerr << "Failed to open output file: " << output_file << std::endl;
+        return;
+    }
+    out << output_yaml.str();
+    out.close();
+
+    std::cout << "Updated YAML written to " << output_file << std::endl;
 }
 
 void IntrinsicsCalibrationRoutine::setOnFinishCallback(std::function<void()> cb)
@@ -249,9 +393,9 @@ void IntrinsicsCalibrationRoutine::performCalibration()
         }
         return;
     }
-    // write to local (base station), also send to robot
-    /// @todo load previous config, and replace just one section
-    saveResults(config_.result_fname);
+    // write to local (base station), also send to robot?
+    /// load previous config, and replace just one section
+    saveResults();
 
     ROS_INFO("Intrinsics calibration complete.");
     progress_msg.success = true;

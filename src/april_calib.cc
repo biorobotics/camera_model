@@ -70,7 +70,7 @@ main( int argc, char** argv )
         ( "input,i", value< std::string >( &inputDir )->default_value( "calibrationdata" ), "Input directory containing chessboard images" )
         ( "prefix,p", value< std::string >( &prefix )->default_value( "" ), "Prefix of images" )
         ( "file-extension,e", value< std::string >( &fileExtension )->default_value( ".png" ),"File extension of images" )
-        ( "camera-model", value< std::string >( &cameraModel )->default_value( "mei" ),"Camera model: kannala-brandt | fov | scaramuzza | mei | pinhole | myfisheye" )
+        ( "camera-model", value< std::string >( &cameraModel )->default_value( "mei" ),"Camera model: kannala_brandt | fov | scaramuzza | mei | pinhole | polyfisheye" )
         ( "camera-name", value< std::string >( &cameraName )->default_value( "camera" ), "Name of camera" )
         ( "opencv", value< bool >( &useOpenCV )->default_value( true ), "Use OpenCV to detect corners" )
         ( "view-results", value< bool >( &viewResults )->default_value( true ), "View results" )
@@ -109,71 +109,18 @@ main( int argc, char** argv )
     }
 
     camera_model::Camera::ModelType modelType;
-    if ( boost::iequals( cameraModel, "kannala-brandt" ) )
+    try 
     {
-        modelType = camera_model::Camera::KANNALA_BRANDT;
+        modelType = camera_model::toCameraModelType( cameraModel );
     }
-    else if ( boost::iequals( cameraModel, "mei" ) )
+    catch (const std::exception& e)
     {
-        modelType = camera_model::Camera::MEI;
-    }
-    else if ( boost::iequals( cameraModel, "pinhole" ) )
-    {
-        modelType = camera_model::Camera::PINHOLE;
-    }
-    else if ( boost::iequals( cameraModel, "pinhole2" ) )
-    {
-        modelType = camera_model::Camera::PINHOLE_FULL;
-    }
-    else if ( boost::iequals( cameraModel, "scaramuzza" ) )
-    {
-        modelType = camera_model::Camera::SCARAMUZZA;
-    }
-    else if ( boost::iequals( cameraModel, "myfisheye" ) )
-    {
-        modelType = camera_model::Camera::POLYFISHEYE;
-    }
-    else if ( boost::iequals( cameraModel, "spline" ) )
-    {
-        modelType = camera_model::Camera::SPLINE;
-    }
-    else if ( boost::iequals( cameraModel, "fov" ) )
-    {
-        modelType = camera_model::Camera::FOV;
-    }
-    else
-    {
-        std::cerr << "# ERROR: Unknown camera model: " << cameraModel << std::endl;
+        std::cerr << e.what() << std::endl;
         return 1;
     }
 
-    switch ( modelType )
-    {
-        case camera_model::Camera::KANNALA_BRANDT:
-            std::cout << "# INFO: Camera model: Kannala-Brandt" << std::endl;
-            break;
-        case camera_model::Camera::MEI:
-            std::cout << "# INFO: Camera model: Mei" << std::endl;
-            break;
-        case camera_model::Camera::PINHOLE:
-            std::cout << "# INFO: Camera model: Pinhole" << std::endl;
-            break;
-        case camera_model::Camera::PINHOLE_FULL:
-            std::cout << "# INFO: Camera model: Full Pinhole Model" << std::endl;
-            break;
-        case camera_model::Camera::SCARAMUZZA:
-            std::cout << "# INFO: Camera model: Scaramuzza-Omnidirect" << std::endl;
-            break;
-        case camera_model::Camera::SPLINE:
-            std::cout << "# INFO: Camera model: spline camera model" << std::endl;
-            break;
-        case camera_model::Camera::FOV:
-            std::cout << "# INFO: Camera model: FOV camera model" << std::endl;
-            break;
-        case camera_model::Camera::POLYFISHEYE:
-            std::cout << "# INFO: Camera model: GaoWenliang's polynomial fisheye model" << std::endl;
-            break;
-    }
+    std::string model_type_str = camera_model::modelTypeToString( modelType );
+    std::cout << "# INFO: Camera model type: " << model_type_str << std::endl;
 
     // look for images in input directory
     std::vector< std::string > imageFilenames;

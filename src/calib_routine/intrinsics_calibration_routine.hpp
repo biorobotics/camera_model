@@ -32,7 +32,11 @@ public:
     void pubDofStatus(const PoseCoverageMetrics &pose_coverage);
 
     void beginPhaseTwo() override;
-    void saveResults(const std::string &output_path) override;
+    void saveResults() override;
+
+    void updateCalibrationResult(
+        const std::string &input_file,
+        const std::string &output_file) override;
 
     void setOnFinishCallback(std::function<void()> cb) override;
 

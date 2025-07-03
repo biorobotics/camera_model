@@ -131,7 +131,6 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     std::string calib_type_str;
-    bool is_save_data = false;
     std::string frontend_path;
     std::string data_save_folder;
 
@@ -140,8 +139,7 @@ int main(int argc, char **argv)
         "help,h", "Produce help message")(
         "calibration_type,t", po::value<std::string>(&calib_type_str)->default_value("intrinsics"), "Calibration type options: intrinsics, camera-laser")(
         "frontend_path", po::value<std::string>(&frontend_path)->default_value("~/catkin_ws/src/blaser_mapping/pipe_blaser_ros"), "Folder of the sensing frontend.")(
-        "save_data", po::value<bool>(&is_save_data)->default_value(false), "Whether to save calibration data, detected april grid point, and point file.")(
-        "data_save_folder", po::value<std::string>(&data_save_folder)->default_value("calib_images"), "Calibration data and detection save folder.");
+        "data_save_folder", po::value<std::string>(&data_save_folder)->default_value("~/calib_images"), "Calibration data and detection save folder.");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -164,47 +162,43 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::string routine_data_save_folder = data_save_folder + "/" + calibration_config::toString(calib_type);
-    if (is_save_data && !fs::exists(routine_data_save_folder))
-    {
-        fs::create_directories(routine_data_save_folder);
-    }
-    std::cout << "Calib data will be saved to: " << routine_data_save_folder
-              << std::endl;
-
     // create folder for saving calibration params
-    // get a string of date and time
-    std::time_t now = std::time(nullptr);
-    std::tm *tm = std::localtime(&now);
-    char buffer[80];
-    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d_%H-%M-%S", tm);
-    std::string timestamp(buffer);
-    std::string result_output_folder = frontend_path +
-                                       "/calib_data/";
-    // this file will be a monolithic yaml file with latest calibration params
-    // e.g. if intrinsics calib is performed, this file will copy all params
-    // from the latest calib result yaml and overwrite only the intrinsics part
-    std::string result_fname = result_output_folder + timestamp + ".yaml";
-
-    if (!fs::exists(result_output_folder))
+    fs::path result_output_folder_path(frontend_path);
+    result_output_folder_path /= "calib_data";
+    if (!fs::exists(result_output_folder_path))
     {
-        fs::create_directories(result_output_folder);
+        fs::create_directories(result_output_folder_path);
     }
 
-    std::string config_file = frontend_path +
-                              "/calibration/config/" + calibration_config::toString(calib_type) +
-                              ".yaml";
-    if (!fs::exists(config_file))
+    fs::path config_file_path(frontend_path);
+    config_file_path = config_file_path / "calibration" / "config" /
+                       (calibration_config::toString(calib_type) + ".yaml");
+    if (!fs::exists(config_file_path))
     {
-        std::cerr << "# ERROR: config file doesn't exist: " << config_file
-                  << std::endl;
+        std::cerr << "# ERROR: config file doesn't exist: "
+                  << config_file_path.string() << std::endl;
         nh.shutdown();
         return 1;
     }
 
-    CalibrationConfig config = calibration_config::loadConfigFromYaml(config_file);
-    config.setResultFname(result_fname);
-    config.setRoutineDataSaveFolder(routine_data_save_folder);
+    // load and assemble the calibration config
+    CalibrationConfig config = calibration_config::loadConfigFromYaml(config_file_path.string());
+    config.setFrontendPath(frontend_path);
+    config.setResultOutputFolder(result_output_folder_path.string());
+    if (config.save_data)
+    {
+        fs::path data_save_folder_path(data_save_folder);
+        data_save_folder_path /= calibration_config::toString(calib_type);
+        std::string routine_data_save_folder = data_save_folder_path.string();
+        if (!fs::exists(routine_data_save_folder))
+        {
+            fs::create_directories(routine_data_save_folder);
+            std::cout << "Calib data will be saved to: "
+                      << routine_data_save_folder << std::endl;
+        }
+        config.setRoutineDataSaveFolder(routine_data_save_folder);
+    }
+
     std::cout << config << std::endl;
 
     CalibrationNode node(nh, config);

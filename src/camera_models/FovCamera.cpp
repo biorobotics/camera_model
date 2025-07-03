@@ -517,7 +517,7 @@ FovCamera::Parameters::readFromYamlFile( const std::string& filename )
         std::string sModelType;
         fs["model_type"] >> sModelType;
 
-        if ( sModelType.compare( "FOV" ) != 0 )
+        if (!boost::iequals(sModelType, "FOV"))
         {
             return false;
         }
@@ -552,15 +552,13 @@ FovCamera::Parameters::writeToYamlFile( const std::string& filename ) const
 
     // projection:  k2, k3, k4, k5, k6, k7, A11, A22, u0, v0
     fs << "projection_parameters";
-    fs << "{";
-
-    fs << "m_omg" << m_omg;
-    fs << "m_fx " << m_fx;
-    fs << "m_fy " << m_fy;
-    fs << "m_u0 " << m_u0;
-    fs << "m_v0 " << m_v0;
-
-    fs << "}";
+    fs << "{" 
+       << "omg" << m_omg
+       << "fx" << m_fx
+       << "fy" << m_fy
+       << "u0" << m_u0
+       << "v0" << m_v0
+       << "}";
 
     fs.release( );
 }

@@ -951,7 +951,7 @@ SplineCamera::Parameters::readFromYamlFile( const std::string& filename )
         std::string sModelType;
         fs["model_type"] >> sModelType;
 
-        if ( sModelType.compare( "SPLINE" ) != 0 )
+        if (!boost::iequals(sModelType, "SPLINE"))
         {
             return false;
         }

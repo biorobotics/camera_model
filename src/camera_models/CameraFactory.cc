@@ -139,48 +139,17 @@ CameraFactory::generateCameraFromYamlFile( const std::string& filename )
     }
 
     Camera::ModelType modelType = Camera::MEI;
-    if ( !fs["model_type"].isNone( ) )
+    assert( !fs["model_type"].isNone( ) );
+    std::string sModelType;
+    fs["model_type"] >> sModelType;
+    try
     {
-        std::string sModelType;
-        fs["model_type"] >> sModelType;
-
-        if ( boost::iequals( sModelType, "KANNALA_BRANDT" ) )
-        {
-            modelType = Camera::KANNALA_BRANDT;
-        }
-        else if ( boost::iequals( sModelType, "MEI" ) )
-        {
-            modelType = Camera::MEI;
-        }
-        else if ( boost::iequals( sModelType, "SCARAMUZZA" ) )
-        {
-            modelType = Camera::SCARAMUZZA;
-        }
-        else if ( boost::iequals( sModelType, "PINHOLE" ) )
-        {
-            modelType = Camera::PINHOLE;
-        }
-        else if ( boost::iequals( sModelType, "PINHOLE_FULL" ) )
-        {
-            modelType = Camera::PINHOLE_FULL;
-        }
-        else if ( boost::iequals( sModelType, "POLYFISHEYE" ) )
-        {
-            modelType = Camera::POLYFISHEYE;
-        }
-        else if ( boost::iequals( sModelType, "SPLINE" ) )
-        {
-            modelType = Camera::SPLINE;
-        }
-        else if ( boost::iequals( sModelType, "FOV" ) )
-        {
-            modelType = Camera::FOV;
-        }
-        else
-        {
-            std::cerr << "# ERROR: Unknown camera model: " << sModelType << std::endl;
-            return CameraPtr( );
-        }
+        modelType = toCameraModelType(sModelType);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return CameraPtr( );
     }
 
     switch ( modelType )

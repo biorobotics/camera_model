@@ -43,34 +43,38 @@ struct CalibrationConfig
     // Calibration type (e.g., intrinsics or extrinsics)
     CalibrationType calibration_type = CalibrationType::INTRINSICS; // default type
 
-    // Tag grid configuration
+    /// Tag grid configuration
     int tag_rows = 6;
     int tag_cols = 6;
     double tag_size = 0.0275; // meters
     double tag_spacing = 0.3; // ratio: spacing / tag_size
 
-    // Image input configuration
+    /// Image input configuration
     int image_width = 720;   // default width
     int image_height = 1280; // default height
 
-    // Camera model and name
+    /// Camera model and name
     camera_model::Camera::ModelType camera_model = camera_model::Camera::PINHOLE; // default model
     std::string camera_name = "camera";
 
-    // Image preprocessing
+    /// Image preprocessing
     float resize_scale_one = 0.5;
     float resize_scale_two = 1.0;
     cv::Size roi_size = {0, 0};    // optional
     cv::Point roi_center = {0, 0}; // optional
 
-    // File paths
-    std::string result_fname = "~/calib_result.yaml"; // default output calib params yaml file. The actual yaml should be <date_time>.yaml
+    /// File paths
+    // default path to sensing frontend
+    std::string frontend_path = "~/catkin_ws/src/blaser_mapping/pipe_blaser_ros";
+    // default folder to store all output calib params yaml files
+    std::string result_output_folder = "~/calib_yaml";
     std::string routine_data_save_folder = "~/data/intrinsics";
 
     double max_error_threshold = 20.0; // px
 
-    // Misc
+    /// Misc
     bool verbose = true;
+    bool save_data = false; // whether to save intermediate data to file system
 
     /**
      * @brief Set the result output file path for calibration results.
@@ -78,9 +82,20 @@ struct CalibrationConfig
      *
      * @param path The absolute path of the yaml file storing calib params.
      */
-    void setResultFname(const std::string &path)
+    void setResultOutputFolder(const std::string &path)
     {
-        result_fname = path;
+        result_output_folder = path;
+    }
+
+    /**
+     * @brief Set the sensing frontend folder.
+     *
+     * @param path The absolute path of the sensing frontend folder.
+     * @note This field doesn't exist in the yaml file, user need to set it manually.
+     */
+    void setFrontendPath(const std::string &path)
+    {
+        frontend_path = path;
     }
 
     /**

@@ -112,6 +112,7 @@ CalibrationConfig calibration_config::loadConfigFromYaml(
 
         config.max_error_threshold = root["max_error_threshold"].as<double>(config.max_error_threshold);
         config.verbose = root["verbose"].as<bool>(config.verbose);
+        config.save_data = root["save_data"].as<bool>(config.save_data);
     }
     catch (const std::exception &e)
     {
@@ -138,7 +139,8 @@ std::ostream &operator<<(std::ostream &os, const CalibrationConfig &config)
        << "  roi_size: {" << config.roi_size.width << ", " << config.roi_size.height << "}\n"
        << "  roi_center: {" << config.roi_center.x << ", "
        << config.roi_center.y << "}\n"
-       << "  result_fname: " << config.result_fname << "\n"
+       << "  frontend_path: " << config.frontend_path << "\n"
+       << "  result_output_folder: " << config.result_output_folder << "\n"
        << "  routine_data_save_folder: "
        << config.routine_data_save_folder
        << "\n"
@@ -148,7 +150,10 @@ std::ostream &operator<<(std::ostream &os, const CalibrationConfig &config)
        << "  verbose: "
        << config.verbose
        << "\n"
+       << "  save_data: "
+       << config.save_data
+       << "\n"
        << std::endl;
-    ;
+
     return os;
 }

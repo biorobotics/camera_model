@@ -220,7 +220,7 @@ PinholeFullCamera::Parameters::readFromYamlFile( const std::string& filename )
         std::string sModelType;
         fs["model_type"] >> sModelType;
 
-        if ( sModelType.compare( "PINHOLE_FULL" ) != 0 )
+        if (!boost::iequals(sModelType, "PINHOLE_FULL"))
         {
             return false;
         }
@@ -244,8 +244,8 @@ PinholeFullCamera::Parameters::readFromYamlFile( const std::string& filename )
     n    = fs["projection_parameters"];
     m_fx = static_cast< double >( n["fx"] );
     m_fy = static_cast< double >( n["fy"] );
-    m_cx = static_cast< double >( n["cx"] );
-    m_cy = static_cast< double >( n["cy"] );
+    m_cx = static_cast< double >( n["u0"] );
+    m_cy = static_cast< double >( n["v0"] );
 
     return true;
 }
@@ -268,10 +268,10 @@ PinholeFullCamera::Parameters::writeToYamlFile( const std::string& filename ) co
        << "k1" << m_k1 << "k2" << m_k2 << "k3" << m_k3 << "k4" << m_k4 << "k5" << m_k5
        << "k6" << m_k6 << "p1" << m_p1 << "p2" << m_p2 << "}";
 
-    // projection: fx, fy, cx, cy
+    // projection: fx, fy, cx (u0), cy (v0)
     fs << "projection_parameters";
     fs << "{"
-       << "fx" << m_fx << "fy" << m_fy << "cx" << m_cx << "cy" << m_cy << "}";
+       << "fx" << m_fx << "fy" << m_fy << "u0" << m_cx << "v0" << m_cy << "}";
 
     fs.release( );
 }
