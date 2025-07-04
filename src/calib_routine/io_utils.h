@@ -16,11 +16,11 @@
 namespace io_utils
 {
     /**
-     * @brief Find the last sorted file in a directory, sorted in descending order by filename.
+     * @brief Find the last sorted file in a directory, sorted in ascending order by filename.
      *
      * @param folder Full path to the directory to search.
      * @return std::string Empty string for no files, otherwise the full path of the last file.
      */
-    std::string findLastSortedFileDescending(const std::string &folder);
+    std::string findLastSortedFileAscending(const std::string &folder);
 
 }

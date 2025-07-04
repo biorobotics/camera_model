@@ -148,7 +148,7 @@ int main(int argc, char **argv)
     if (vm.count("help"))
     {
         std::cout << desc << std::endl;
-        nh.shutdown();
+        ros::shutdown();
         return 1;
     }
 
@@ -158,13 +158,13 @@ int main(int argc, char **argv)
     {
         std::cerr << "# ERROR: Cannot find frontend path." << frontend_path
                   << std::endl;
-        nh.shutdown();
+        ros::shutdown();
         return 1;
     }
 
     // create folder for saving calibration params
     fs::path result_output_folder_path(frontend_path);
-    result_output_folder_path /= "calib_data";
+    result_output_folder_path /= "calib_results";
     if (!fs::exists(result_output_folder_path))
     {
         fs::create_directories(result_output_folder_path);
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     {
         std::cerr << "# ERROR: config file doesn't exist: "
                   << config_file_path.string() << std::endl;
-        nh.shutdown();
+        ros::shutdown();
         return 1;
     }
 
@@ -190,12 +190,15 @@ int main(int argc, char **argv)
         fs::path data_save_folder_path(data_save_folder);
         data_save_folder_path /= calibration_config::toString(calib_type);
         std::string routine_data_save_folder = data_save_folder_path.string();
-        if (!fs::exists(routine_data_save_folder))
+        // first clear out this folder if it exists
+        if (fs::exists(routine_data_save_folder))
         {
-            fs::create_directories(routine_data_save_folder);
-            std::cout << "Calib data will be saved to: "
-                      << routine_data_save_folder << std::endl;
+            fs::remove_all(routine_data_save_folder);
         }
+        fs::create_directories(routine_data_save_folder);
+        std::cout << "Calib data will be saved to: "
+                  << routine_data_save_folder << std::endl;
+
         config.setRoutineDataSaveFolder(routine_data_save_folder);
     }
 
@@ -216,6 +219,6 @@ int main(int argc, char **argv)
 
         loop_rate.sleep();
     }
-    nh.shutdown();
+    ros::shutdown();
     return 0;
 }

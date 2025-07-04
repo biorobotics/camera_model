@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <opencv2/core.hpp>
+#include <tuple>
 
 #include "calibration_routine_interface.hpp"
 #include "camera_model/camera_models/Camera.h"
@@ -62,6 +63,16 @@ struct CalibrationConfig
     float resize_scale_two = 1.0;
     cv::Size roi_size = {0, 0};    // optional
     cv::Point roi_center = {0, 0}; // optional
+
+    /// Coverage checker configuration
+    size_t num_corner_bins = 10;     // number of bins for corner coverage
+    size_t num_size_bins = 5;        // number of bins for size coverage
+    size_t num_skew_bins = 5;        // number of bins for skew coverage
+    size_t min_corners_per_cell = 4; // minimum corners per cell for coverage
+    std::tuple<double, double> x_range = {0.0, 1.0};
+    std::tuple<double, double> y_range = {0.0, 1.0};
+    std::tuple<double, double> size_range = {0.0, 1.0};
+    std::tuple<double, double> skew_range = {0.0, 1.0};
 
     /// File paths
     // default path to sensing frontend

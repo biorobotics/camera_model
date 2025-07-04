@@ -27,9 +27,9 @@ public:
 
     void handleImage(const sensor_msgs::CompressedImageConstPtr &msg) override;
 
-    bool coverageGood(PoseCoverageMetrics &pose_coverage);
+    bool coverageGood(CoverageChecker::CoverageMetrics &coverage);
 
-    void pubDofStatus(const PoseCoverageMetrics &pose_coverage);
+    void pubDofStatus(const CoverageChecker::CoverageMetrics &coverage);
 
     void beginPhaseTwo() override;
     void saveResults() override;
@@ -44,6 +44,7 @@ private:
     ros::NodeHandle &nh_;
     const CalibrationConfig &config_;
     camera_model::CameraCalibration calibration_;
+    CoverageChecker coverage_checker_;
 
     std::function<void()> on_finish_;
 
@@ -56,10 +57,10 @@ private:
     cv_utils::fisheye::PreProcess *preprocess_two_;
 
     std::vector<cv::Mat> stored_images_;
-    std::vector<std::vector<cv::Point2f>> allCorners_;
-    // std::vector<std::vector<cv::Point3f>> allObjPoints_;
-    std::vector<cv::Mat> rvecs_;
-    std::vector<cv::Mat> tvecs_;
+    // std::vector<std::vector<cv::Point2f>> allCorners_;
+    //  std::vector<std::vector<cv::Point3f>> allObjPoints_;
+    // std::vector<cv::Mat> rvecs_;
+    // std::vector<cv::Mat> tvecs_;
 
     double last_add_time_ = 0;
     double add_interval_s_ = 1.0;

@@ -83,7 +83,7 @@ class CameraCalibration
 
     void setVerbose( bool verbose );
 
-    double getErrorMean( void ) const;
+    double getFinalReprojErr( void ) const;
 
 
     private:
@@ -105,7 +105,7 @@ class CameraCalibration
                                   std::vector< cv::Mat >& rvecs,
                                   std::vector< cv::Mat >& tvecs,
                                   std::vector< std::vector< cv::Point2f > >& imagePoints,
-                                  std::vector< std::vector< cv::Point3f > >& scenePoints ) const;
+                                  std::vector< std::vector< cv::Point3f > >& scenePoints );
     
     /**
      * @brief Optimize camera parameters using Ceres Solver.
@@ -149,7 +149,8 @@ class CameraCalibration
 
     bool m_verbose;
 
-    Eigen::Vector2d m_errMean = Eigen::Vector2d::Zero();
+    // final reprojection error after optimization (pixel)
+    double final_reproj_err_ = 0.0;
 
     public:
     std::vector< cv::Mat > m_ImagesShow;

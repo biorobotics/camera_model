@@ -13,39 +13,12 @@
 #include <algorithm>
 #include <numeric>
 #include <iostream>
+#include <tuple>
 
 #include <opencv2/core/eigen.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
-
-struct PoseCoverageMetrics
-{
-    double score_x, score_y, score_z;
-    double score_roll, score_pitch, score_yaw;
-    double image_coverage_score;
-    double total_score;
-
-    /**
-     * @brief Print the metrics to the console.
-     */
-    void print() const
-    {
-        std::cout << "Pose Coverage Metrics:\n"
-                  << "  Score X: " << score_x << "\n"
-                  << "  Score Y: " << score_y << "\n"
-                  << "  Score Z: " << score_z << "\n"
-                  << "  Score Roll: " << score_roll << "\n"
-                  << "  Score Pitch: " << score_pitch << "\n"
-                  << "  Score Yaw: " << score_yaw << "\n"
-                  << "  Image Coverage Score: " << image_coverage_score << "\n"
-                  << "  Total Score: " << total_score << "\n";
-    }
-    PoseCoverageMetrics()
-        : score_x(0), score_y(0), score_z(0),
-          score_roll(0), score_pitch(0), score_yaw(0),
-          image_coverage_score(0), total_score(0) {}
-};
 
 /**
  * @brief Clamp a value between a minimum and maximum.
@@ -62,43 +35,86 @@ T clamp(T val, T min_val, T max_val)
     return std::max(min_val, std::min(val, max_val));
 }
 
-PoseCoverageMetrics evaluatePoseCoverage(
-    const std::vector<Eigen::Vector3d> &translations,   // tvecs
-    const std::vector<Eigen::Vector3d> &eulerAngles,    // roll, pitch, yaw in degrees
-    const std::vector<std::vector<int>> &cornerHeatmap, // grid[rows][cols]
-    int minCornersPerCell = 1,
-    double expectedX = 0.5, double expectedY = 0.5, double expectedZ = 0.5,
-    double expectedRoll = 90.0, double expectedPitch = 90.0, double expectedYaw = 120.0);
+class CoverageChecker
+{
+public:
+    struct CoverageMetrics
+    {
+        double score_x, score_y;
+        double score_size, score_skew;
 
-/**
- * @brief Can directly evaluate pose coverage from rvecs, tvecs, and allCorners.
- *
- * @param rvecs
- * @param tvecs
- * @param allCorners
- * @param imageWidth
- * @param imageHeight
- * @param gridRows
- * @param gridCols
- * @return
- */
-PoseCoverageMetrics evaluatePoseCoverage(
-    const std::vector<cv::Mat> &rvecs,
-    const std::vector<cv::Mat> &tvecs,
-    const std::vector<std::vector<cv::Point2f>> &allCorners,
-    int imageWidth,
-    int imageHeight,
-    int gridRows = 10,
-    int gridCols = 10);
+        /**
+         * @brief Print the metrics to the console.
+         */
+        void print() const
+        {
+            std::cout << "Coverage Metrics:\n"
+                      << "  Score X: " << score_x << "\n"
+                      << "  Score Y: " << score_y << "\n"
+                      << "  Score SIZE: " << score_size << "\n"
+                      << "  Score SKEW: " << score_skew << std::endl;
+        }
+        CoverageMetrics()
+            : score_x(0), score_y(0),
+              score_size(0), score_skew(0)
+        {
+        }
+    };
 
-void convertCalibrationDataForCoverageCheck(
-    const std::vector<cv::Mat> &rvecs,
-    const std::vector<cv::Mat> &tvecs,
-    const std::vector<std::vector<cv::Point2f>> &allCorners,
-    int imageWidth,
-    int imageHeight,
-    int gridRows,
-    int gridCols,
-    std::vector<Eigen::Vector3d> &outTranslations,
-    std::vector<Eigen::Vector3d> &outEulerAngles,
-    std::vector<std::vector<int>> &outHeatmap);
+    CoverageChecker() = default;
+
+    /**
+     * @brief Construct a new Coverage Checker object. Initialize bins for coverage metrics.
+     *
+     */
+    CoverageChecker(size_t image_width, size_t image_height,
+                    size_t num_corner_bins = 10,
+                    size_t num_size_bins = 5,
+                    size_t num_skew_bins = 5,
+                    size_t min_corners_per_cell = 1,
+                    std::tuple<double, double> x_range = {0.0, 1.0},
+                    std::tuple<double, double> y_range = {0.0, 1.0},
+                    std::tuple<double, double> size_range = {0.0, 1.0},
+                    std::tuple<double, double> skew_range = {0.0, 1.0});
+
+    /**
+     * @brief Add an observation of camera pose and detected corners.
+     *
+     * @param corners Detected corners in the image.
+     * @param size Size of the tag in the image, normalized to [0, 1].
+     * @param skew Skew of the tag in the image, normalized to [0, 1].
+     */
+    void addObservation(const std::vector<cv::Point2f> &corners,
+                        double size, double skew);
+
+    /**
+     * @brief Evaluate the coverage metrics based on the stored observations.
+     */
+    CoverageMetrics evaluateCoverage();
+
+    void printBins();
+
+private:
+    size_t image_width_ = 1280;
+    size_t image_height_ = 720;
+
+    size_t num_corner_bins_ = 10;
+    size_t num_size_bins_ = 5;
+    size_t num_skew_bins_ = 5;
+
+    size_t min_corners_per_cell_ = 5;
+
+    std::tuple<double, double> x_range_ = {0.0, 1.0};
+    std::tuple<double, double> y_range_ = {0.0, 1.0};
+    std::tuple<double, double> size_range_ = {0.0, 1.0};
+    std::tuple<double, double> skew_range_ = {0.0, 1.0};
+
+    std::vector<int> x_bins_, y_bins_;
+    std::vector<int> size_bins_, skew_bins_;
+
+    void addToBin(
+        std::vector<int> &bins,
+        double value, double min_val, double max_val);
+
+    void addCornersToBin(const std::vector<cv::Point2f> &corners);
+};

@@ -12,7 +12,7 @@
 
 namespace fs = boost::filesystem;
 
-std::string io_utils::findLastSortedFileDescending(const std::string &folder)
+std::string io_utils::findLastSortedFileAscending(const std::string &folder)
 {
     fs::path directory(folder);
     std::vector<fs::path> files;
@@ -36,9 +36,9 @@ std::string io_utils::findLastSortedFileDescending(const std::string &folder)
         return empty_str;
     }
 
-    // Sort descending based on filename
+    // Sort ascending based on filename
     std::sort(files.begin(), files.end(), [](const fs::path &a, const fs::path &b)
-              { return a.filename().string() > b.filename().string(); });
+              { return a.filename().string() < b.filename().string(); });
 
     return files.back().string();
 }

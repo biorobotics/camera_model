@@ -18,7 +18,9 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <thread>
 #include <boost/filesystem.hpp>
 
@@ -34,6 +36,12 @@ IntrinsicsCalibrationRoutine::IntrinsicsCalibrationRoutine(
           cv::Size(config.tag_cols, config.tag_rows),
           config.tag_size)
 {
+    coverage_checker_ = CoverageChecker(
+        config.image_width, config.image_height,
+        config.num_corner_bins, config.num_size_bins,
+        config.num_skew_bins, config.min_corners_per_cell,
+        config.x_range, config.y_range,
+        config.size_range, config.skew_range);
     // Publisher: Debug image stream (e.g. detections)
     debug_pub_ = nh_.advertise<sensor_msgs::CompressedImage>("/pipe_sprite/calibration/intrinsics/detection_result/compressed", 1);
 
@@ -60,43 +68,63 @@ void IntrinsicsCalibrationRoutine::handleImage(const sensor_msgs::CompressedImag
         cv::Mat image_src = cv::imdecode(cv::Mat(msg->data), cv::IMREAD_COLOR);
         cv::Mat image = preprocess_one_->do_preprocess(image_src);
 
-        AprilgridDetector detector(image, config_.tag_rows, config_.tag_cols, config_.tag_size, config_.tag_spacing);
+        AprilgridDetector detector(image, config_.tag_rows, config_.tag_cols, config_.tag_size, config_.tag_spacing, 1 / config_.resize_scale_one);
 
-        if (detector.detect(1 / config_.resize_scale_one))
+        if (detector.detect())
         {
             camera_model::CameraPtr cameraPtr = calibration_.camera();
-            cv::Mat rvec, tvec;
-            bool estimate_pose_ok = detector.estimatePose(cameraPtr, rvec, tvec);
+
             cv::Mat debug_image = image_src.clone();
-            if (estimate_pose_ok)
-            {
-                // draw detected corners on a clone of the original image
-                // note: stored corners are already scaled during detect()
-                detector.drawCorners(debug_image);
-            }
+
+            // draw detected corners on a clone of the original image
+            // note: stored corners are already scaled during detect()
+            detector.drawCorners(debug_image);
+
             std_msgs::Header header = msg->header;
             cv_bridge::CvImage bridge_image(
                 header, sensor_msgs::image_encodings::BGR8, debug_image);
             sensor_msgs::CompressedImage compressed;
             bridge_image.toCompressedImageMsg(compressed);
             debug_pub_.publish(compressed);
-            if (!estimate_pose_ok)
-            {
-                ROS_WARN("Pose estimation failed for image");
-                return; // skip this image
-            }
+
             // if some time has passed after last add to good detection list, add to list the image_src
             if (last_add_time_ == 0 ||
                 ros::Time::now().toSec() - last_add_time_ > add_interval_s_)
             {
-                stored_images_.push_back(image_src);
+                std::vector<cv::Point2f> bounding_corners;
+                cv::Mat H;
+                if (!detector.computeBoundingBox(bounding_corners, H))
+                {
+                    ROS_WARN("Failed to compute bounding box for detected corners.");
+                    return; // skip this image
+                }
+                // compute coverage
+                double size = detector.calculateSize(bounding_corners);
+                double skew = detector.calculateSkewFromHomography(H);
+                coverage_checker_.addObservation(detector.getCorners(),
+                                                 size, skew);
+                std::cout << "size: " << size
+                          << ", skew: " << skew << std::endl;
+                CoverageChecker::CoverageMetrics coverage =
+                    coverage_checker_.evaluateCoverage();
+                coverage.print();
+                coverage_checker_.printBins();
+                pubDofStatus(coverage);
 
-                allCorners_.push_back(detector.getCorners());
-                rvecs_.push_back(rvec);
-                tvecs_.push_back(tvec);
-                PoseCoverageMetrics pose_coverage = evaluatePoseCoverage(rvecs_, tvecs_, allCorners_, config_.image_width, config_.image_height);
-                pose_coverage.print();
-                pubDofStatus(pose_coverage);
+                // for debug: save the image to the save dir
+                if (config_.save_data)
+                {
+                    std::string base_fname = "img_";
+
+                    std::ostringstream oss;
+                    oss << base_fname << std::setw(5) << std::setfill('0') << stored_images_.size() << ".jpg";
+                    std::string img_name = oss.str();
+
+                    std::string img_fname = config_.routine_data_save_folder + "/" + img_name;
+                    cv::imwrite(img_fname, debug_image);
+                    ROS_INFO("Saved image to: %s", img_fname.c_str());
+                }
+                stored_images_.push_back(image_src);
 
                 last_add_time_ = ros::Time::now().toSec();
                 good_detections_++;
@@ -105,10 +133,10 @@ void IntrinsicsCalibrationRoutine::handleImage(const sensor_msgs::CompressedImag
 
                 // check dof coverage, if good, call phase one done
                 // no. it's up to the user when to end phase one
-                if (stored_images_.size() >= required_detections_ && coverageGood(pose_coverage))
-                {
-                    phase_one_done_.store(true);
-                }
+                // if (stored_images_.size() >= required_detections_ && coverageGood(pose_coverage))
+                // {
+                //     phase_one_done_.store(true);
+                // }
             }
         }
         else
@@ -123,32 +151,31 @@ void IntrinsicsCalibrationRoutine::handleImage(const sensor_msgs::CompressedImag
     }
 }
 
-void IntrinsicsCalibrationRoutine::pubDofStatus(const PoseCoverageMetrics &pose_coverage)
+void IntrinsicsCalibrationRoutine::pubDofStatus(
+    const CoverageChecker::CoverageMetrics &coverage)
 {
     std_msgs::Int32MultiArray dof_status_msg;
     dof_status_msg.data.clear();
-    dof_status_msg.data.push_back(static_cast<int>(pose_coverage.score_x));
-    dof_status_msg.data.push_back(static_cast<int>(pose_coverage.score_y));
-    dof_status_msg.data.push_back(static_cast<int>(pose_coverage.score_z));
-    dof_status_msg.data.push_back(static_cast<int>(pose_coverage.score_roll));
-    dof_status_msg.data.push_back(static_cast<int>(pose_coverage.score_pitch));
-    dof_status_msg.data.push_back(static_cast<int>(pose_coverage.score_yaw));
+    dof_status_msg.data.push_back(static_cast<int>(coverage.score_x));
+    dof_status_msg.data.push_back(static_cast<int>(coverage.score_y));
+    dof_status_msg.data.push_back(static_cast<int>(coverage.score_size));
+    dof_status_msg.data.push_back(static_cast<int>(coverage.score_skew));
     dof_status_pub_.publish(dof_status_msg);
 }
 
-bool IntrinsicsCalibrationRoutine::coverageGood(PoseCoverageMetrics &pose_coverage)
+bool IntrinsicsCalibrationRoutine::coverageGood(
+    CoverageChecker::CoverageMetrics &coverage)
 {
     /// @bug the scores are 100 at the very beginning. check math
-    double score_x = pose_coverage.score_x;
-    double score_y = pose_coverage.score_y;
-    double score_z = pose_coverage.score_z;
-    double score_roll = pose_coverage.score_roll;
-    double score_pitch = pose_coverage.score_pitch;
-    double score_yaw = pose_coverage.score_yaw;
-    double image_coverage_score = pose_coverage.image_coverage_score;
+    double score_x = coverage.score_x;
+    double score_y = coverage.score_y;
+    double score_size = coverage.score_size;
+    double score_skew = coverage.score_skew;
+
     // Check if all scores are above a threshold
     double thresh = 80.0;
-    if (score_x >= thresh && score_y >= thresh && score_z >= thresh && score_roll >= thresh && score_pitch >= thresh && score_yaw >= thresh && image_coverage_score >= thresh)
+    if (score_x >= thresh && score_y >= thresh && score_size >= thresh &&
+        score_skew >= thresh)
         return true;
     return false;
 }
@@ -178,7 +205,7 @@ void IntrinsicsCalibrationRoutine::saveResults()
     std::string result_file = result_file_path.string();
 
     // step 2: iterate the result output folder, sort all files and find the one with the latest timestamp
-    std::string ref_file = io_utils::findLastSortedFileDescending(config_.result_output_folder);
+    std::string ref_file = io_utils::findLastSortedFileAscending(config_.result_output_folder);
     if (ref_file.empty())
     {
         ROS_WARN("No previous calibration results found");
@@ -314,6 +341,7 @@ void IntrinsicsCalibrationRoutine::setOnFinishCallback(std::function<void()> cb)
 
 void IntrinsicsCalibrationRoutine::performCalibration()
 {
+    ROS_INFO("Starting intrinsics calibration calculation...");
     camera_model::CalibrationProgress progress_msg;
     progress_msg.done = false;
     progress_msg.success = false;
@@ -335,7 +363,7 @@ void IntrinsicsCalibrationRoutine::performCalibration()
     // redo preprocess and corner detection on stored images
     size_t image_count = stored_images_.size();
     size_t processed_count = 0;
-    int32_t max_process_progress = 70; // 70% of the progress bar for detection, the rest for calibration
+    int32_t max_process_progress = 50; // 70% of the progress bar for detection, the rest for calibration
     for (auto &image : stored_images_) // original size image
     {
         image = preprocess_two_->do_preprocess(image);
@@ -377,12 +405,12 @@ void IntrinsicsCalibrationRoutine::performCalibration()
     // final message after calibration calculation, success depends on the error mean
     progress_msg.done = true;
     progress_msg.progress_percentage = 100;
-    progress_msg.error_metrics.push_back("Mean Reprojection Error");
-    progress_msg.error_values.push_back(calibration_.getErrorMean());
+    progress_msg.error_metrics.push_back("Reprojection Error");
+    progress_msg.error_values.push_back(calibration_.getFinalReprojErr());
 
-    if (calibration_.getErrorMean() > config_.max_error_threshold)
+    if (calibration_.getFinalReprojErr() > config_.max_error_threshold)
     {
-        ROS_WARN("Calibration error mean is too high: %f", calibration_.getErrorMean());
+        ROS_WARN("Calibration error is too high: %f", calibration_.getFinalReprojErr());
 
         progress_msg.success = false;
         progress_msg.message = "Intrinsics calibration failed due to high error.";
@@ -393,6 +421,7 @@ void IntrinsicsCalibrationRoutine::performCalibration()
         }
         return;
     }
+    ROS_INFO("Intrinsics calibration successful. Reprojection error: %f", calibration_.getFinalReprojErr());
     // write to local (base station), also send to robot?
     /// load previous config, and replace just one section
     saveResults();

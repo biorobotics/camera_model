@@ -193,7 +193,6 @@ CameraCalibration::calibrate( void )
     std::cout << "Recalibration done." << std::endl;
 
     Eigen::Vector2d errMean = errSum / static_cast< double >( errCount );
-    m_errMean = errMean;
 
     Eigen::Matrix2d measurementCovariance = Eigen::Matrix2d::Zero( );
     for ( size_t i = 0; i < errVec.size( ); ++i )
@@ -618,9 +617,9 @@ CameraCalibration::calibrateHelper( CameraPtr& camera,
     return true;
 }
 
-double CameraCalibration::getErrorMean() const
+double CameraCalibration::getFinalReprojErr() const
 {
-    return m_errMean.norm();
+    return final_reproj_err_;
 }
 
 bool
@@ -628,25 +627,26 @@ CameraCalibration::CalibrationOptimization( CameraPtr& camera,
                                             std::vector< cv::Mat >& rvecs,
                                             std::vector< cv::Mat >& tvecs,
                                             std::vector< std::vector< cv::Point2f > >& imagePoints,
-                                            std::vector< std::vector< cv::Point3f > >& scenePoints ) const
+                                            std::vector< std::vector< cv::Point3f > >& scenePoints )
 {
+    double err_initial = camera->reprojectionError( scenePoints, imagePoints, rvecs, tvecs );
     if ( m_verbose )
     {
         std::cout << "[" << camera->cameraName( ) << "] "
                   << "# INFO: "
                   << "Initial reprojection error: " << std::fixed << std::setprecision( 3 )
-                  << camera->reprojectionError( scenePoints, imagePoints, rvecs, tvecs )
+                  << err_initial
                   << " pixels" << std::endl;
     }
 
     // STEP 3: optimization using ceres
     optimize( camera, rvecs, tvecs, imagePoints, scenePoints );
 
+    double err = camera->reprojectionError( scenePoints, imagePoints, rvecs, tvecs );
+    final_reproj_err_ = err;
+    double rms = camera->reprojectionRMSError( scenePoints, imagePoints, rvecs, tvecs );
     if ( m_verbose )
     {
-        double err = camera->reprojectionError( scenePoints, imagePoints, rvecs, tvecs );
-        double rms = camera->reprojectionRMSError( scenePoints, imagePoints, rvecs, tvecs );
-
         std::cout << "[" << camera->cameraName( ) << "] "
                   << "# INFO: Final reprojection error: "
                   << "\033[31;47;1m" << err << "\033[0m"

@@ -110,6 +110,23 @@ CalibrationConfig calibration_config::loadConfigFromYaml(
                 root["roi_center"]["y"].as<int>());
         }
 
+        config.num_corner_bins = root["num_corner_bins"].as<size_t>(config.num_corner_bins);
+        config.num_size_bins = root["num_size_bins"].as<size_t>(config.num_size_bins);
+        config.num_skew_bins = root["num_skew_bins"].as<size_t>(config.num_skew_bins);
+        config.min_corners_per_cell = root["min_corners_per_cell"].as<size_t>(config.min_corners_per_cell);
+        config.x_range = std::make_tuple(
+            root["x_range"]["min"].as<double>(std::get<0>(config.x_range)),
+            root["x_range"]["max"].as<double>(std::get<1>(config.x_range)));
+        config.y_range = std::make_tuple(
+            root["y_range"]["min"].as<double>(std::get<0>(config.y_range)),
+            root["y_range"]["max"].as<double>(std::get<1>(config.y_range)));
+        config.size_range = std::make_tuple(
+            root["size_range"]["min"].as<double>(std::get<0>(config.size_range)),
+            root["size_range"]["max"].as<double>(std::get<1>(config.size_range)));
+        config.skew_range = std::make_tuple(
+            root["skew_range"]["min"].as<double>(std::get<0>(config.skew_range)),
+            root["skew_range"]["max"].as<double>(std::get<1>(config.skew_range)));
+
         config.max_error_threshold = root["max_error_threshold"].as<double>(config.max_error_threshold);
         config.verbose = root["verbose"].as<bool>(config.verbose);
         config.save_data = root["save_data"].as<bool>(config.save_data);
@@ -139,6 +156,18 @@ std::ostream &operator<<(std::ostream &os, const CalibrationConfig &config)
        << "  roi_size: {" << config.roi_size.width << ", " << config.roi_size.height << "}\n"
        << "  roi_center: {" << config.roi_center.x << ", "
        << config.roi_center.y << "}\n"
+       << "  num_corner_bins: " << config.num_corner_bins << "\n"
+       << "  num_size_bins: " << config.num_size_bins << "\n"
+       << "  num_skew_bins: " << config.num_skew_bins << "\n"
+       << "  min_corners_per_cell: " << config.min_corners_per_cell << "\n"
+       << "  x_range: {" << std::get<0>(config.x_range) << ", "
+       << std::get<1>(config.x_range) << "}\n"
+       << "  y_range: {" << std::get<0>(config.y_range) << ", "
+       << std::get<1>(config.y_range) << "}\n"
+       << "  size_range: {" << std::get<0>(config.size_range) << ", "
+       << std::get<1>(config.size_range) << "}\n"
+       << "  skew_range: {" << std::get<0>(config.skew_range) << ", "
+       << std::get<1>(config.skew_range) << "}\n"
        << "  frontend_path: " << config.frontend_path << "\n"
        << "  result_output_folder: " << config.result_output_folder << "\n"
        << "  routine_data_save_folder: "
